@@ -1,0 +1,56 @@
+spring:
+  application:
+    name: nem12-parser
+  profiles:
+    active: local
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  mvc:
+    throw-exception-if-no-handler-found: true
+
+  web:
+    resources:
+      add-mappings: false
+
+  servlet:
+    multipart:
+      max-file-size: 10GB
+      max-request-size: 10GB
+
+nem12:
+  api-key: ${NEM12_API_KEY}
+  batch-size: ${NEM12_BATCH_SIZE:5000}
+  sql-output-directory: ${NEM12_SQL_OUTPUT_DIR:./output}
+  job-timeout-minutes: ${NEM12_JOB_TIMEOUT:180}
+  concurrent-batch-workers: ${NEM12_BATCH_WORKERS:4}
+  max-in-flight-batches: ${NEM12_MAX_IN_FLIGHT:8}
+  cleanup-interval-ms: ${NEM12_CLEANUP_INTERVAL_MS:300000}
+
+async:
+  core-pool-size: ${ASYNC_CORE_POOL:2}
+  max-pool-size: ${ASYNC_MAX_POOL:5}
+  queue-capacity: ${ASYNC_QUEUE_CAPACITY:10}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{requestId:-}] [%X{jobId:-}] %-5level %logger{36} - %msg%n"

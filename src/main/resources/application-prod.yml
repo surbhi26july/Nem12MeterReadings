@@ -1,0 +1,24 @@
+# Production profile
+# Everything from environment variables — no defaults for sensitive values
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/meter_data
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+
+nem12:
+  sql-output-directory: /var/nem12/output
+
+async:
+  core-pool-size: 4
+  max-pool-size: 10
+  queue-capacity: 25
+
+logging:
+  level:
+    com.nem12: INFO
+    root: WARN

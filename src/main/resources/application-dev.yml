@@ -1,0 +1,15 @@
+# Dev environment profile
+# Credentials come from environment variables — nothing hardcoded here
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/meter_data_dev
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+nem12:
+  sql-output-directory: /var/nem12/output
+
+logging:
+  level:
+    com.nem12: DEBUG

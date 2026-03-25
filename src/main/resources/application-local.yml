@@ -1,0 +1,17 @@
+# Local development profile
+# Run with: mvn spring-boot:run -Dspring-boot.run.profiles=local
+# Or set SPRING_PROFILES_ACTIVE=local
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/meter_data_local
+    username: postgres
+    password: postgres
+
+nem12:
+  api-key: local-dev-key-not-for-production
+  sql-output-directory: ./output
+
+logging:
+  level:
+    com.nem12: DEBUG
