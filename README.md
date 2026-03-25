@@ -186,8 +186,7 @@ If this service grows beyond a single internal tool, here's what I'd change:
 - **JWT with an identity provider** — swap the API key for short-lived JWTs issued by something like Keycloak or Auth0. You get token expiry, user identity, and role-based access (e.g., read-only vs. upload) without managing credentials yourself.
 - **Per-client keys** — if sticking with API keys, issue a separate key per client so you can revoke one without breaking all consumers. Store hashed keys in the database instead of plain text in config.
 - **Key rotation** — support multiple active keys during a rotation window. The current setup requires a redeploy to change the key, which means downtime or coordination.
-- **Rate limiting per identity** — right now there's no way to throttle one client without throttling everyone. Per-client keys (or JWTs with a `sub` claim) would make this possible.
-- **mTLS for service-to-service** — if this runs in a service mesh, mutual TLS handles auth at the transport layer. No keys or tokens to manage at all.
+- **Rate limiting per identity** — right now there's no way to throttle one client without throttling everyone. Per-client keys (or JWTs with a `sub` claim) would make this possible
 
 ## API
 
@@ -328,6 +327,10 @@ Tests use H2 in PostgreSQL compatibility mode and Mockito. No external database 
 
 ### Q2. What would you have done differently with more time?
 
+**TimescaleDB for optimised reads** — meter readings are time-series data, and querying them by time range is the most common read pattern. TimescaleDB's hypertables automatically partition data by time, which means range queries (e.g., "readings for NMI X between January and March") scan only the relevant chunks instead of the entire table. It also provides built-in data compression for older readings and continuous aggregates for precomputed rollups (e.g., daily/weekly consumption summaries). Since TimescaleDB is a PostgreSQL extension, adopting it requires no changes to application code — just the database setup.
+
+**Authentication** - the current API key approach works for a single internal service, but it has no token expiry, no per-user identity, and no role-based access control. With more time, I'd integrate with an identity provider (like Okta or Spring Authorization Server) to issue short-lived JWTs.
+
 **Testcontainers for integration tests** — H2 doesn't catch every PostgreSQL quirk (we ran into the `timestamp` reserved word issue, for example). Testcontainers would spin up a real Postgres instance for integration tests and catch these before deployment.
 
 **Re-upload only failed batches** — if 3 out of 800 batches fail, you currently have to re-upload the whole file. It'd be better to let clients retry just the failed ranges.
@@ -341,8 +344,6 @@ Tests use H2 in PostgreSQL compatibility mode and Mockito. No external database 
 **Object storage for SQL files** — the generated SQL files sit on local disk, which doesn't survive pod restarts in Kubernetes. S3 or a shared volume would fix that.
 
 **Table partitioning** — for very large datasets, partitioning `meter_readings` by NMI or date would keep query performance steady as the table grows.
-
-**TimescaleDB for optimised reads** — meter readings are time-series data, and querying them by time range is the most common read pattern. TimescaleDB's hypertables automatically partition data by time, which means range queries (e.g., "readings for NMI X between January and March") scan only the relevant chunks instead of the entire table. It also provides built-in data compression for older readings and continuous aggregates for precomputed rollups (e.g., daily/weekly consumption summaries). Since TimescaleDB is a PostgreSQL extension, adopting it requires no changes to application code — just the database setup.
 
 ### Q3. What is the rationale for the design choices?
 
