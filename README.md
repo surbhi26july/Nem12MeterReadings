@@ -13,12 +13,31 @@ Processing happens in the background — you upload, get a job ID, and poll for 
 
 - Java 17+
 - Maven 3.8+
-- PostgreSQL 14+ (or Docker for TimescaleDB)
+- PostgreSQL 14+
+
+### Database setup
+
+Create the `meter_data_local` database in your local PostgreSQL:
+
+```bash
+PGPASSWORD=postgres psql -U postgres -c "CREATE DATABASE meter_data_local;"
+```
+
+The application connects with the following credentials (configured in `application-local.yml`):
+
+| Property | Value |
+|----------|-------|
+| Host | localhost |
+| Port | 5432 |
+| Database | meter_data_local |
+| Username | postgres |
+| Password | postgres |
+
+Flyway will automatically create the required tables on first run.
 
 ### Quick start
 
 ```bash
-docker-compose up -d              # start the database
 mvn clean package                 # build
 mvn spring-boot:run \
   -Dspring-boot.run.profiles=local  # run on port 8080
@@ -297,7 +316,7 @@ Tests use H2 in PostgreSQL compatibility mode and Mockito. No external database 
 
 **Spring Boot** — standard choice for a Java REST service. Gives you dependency injection, async execution, transaction management, and actuator endpoints without much wiring. Spring Data JPA and Flyway cut down on boilerplate.
 
-**PostgreSQL** — we need `ON CONFLICT` for upsert behavior and a `UNIQUE` constraint on `(nmi, timestamp)`. Postgres handles both natively. TimescaleDB is in the Docker setup for potential time-series query work down the line, but it's not required.
+**PostgreSQL** — we need `ON CONFLICT` for upsert behavior and a `UNIQUE` constraint on `(nmi, timestamp)`. Postgres handles both natively. For production, **TimescaleDB** (a PostgreSQL extension) would be the ideal choice here — meter readings are time-series data, and TimescaleDB's hypertables automatically partition by time, giving significantly faster range queries (e.g., "all readings for this NMI in the last 30 days") and built-in compression for older data. Since it's a PostgreSQL extension, the switch requires no application code changes — just `CREATE EXTENSION` and converting the table to a hypertable.
 
 **Flyway** — schema changes are versioned and run automatically on startup. No manual DDL scripts to forget about. Each migration is a plain SQL file, easy to review.
 
@@ -322,6 +341,8 @@ Tests use H2 in PostgreSQL compatibility mode and Mockito. No external database 
 **Object storage for SQL files** — the generated SQL files sit on local disk, which doesn't survive pod restarts in Kubernetes. S3 or a shared volume would fix that.
 
 **Table partitioning** — for very large datasets, partitioning `meter_readings` by NMI or date would keep query performance steady as the table grows.
+
+**TimescaleDB for optimised reads** — meter readings are time-series data, and querying them by time range is the most common read pattern. TimescaleDB's hypertables automatically partition data by time, which means range queries (e.g., "readings for NMI X between January and March") scan only the relevant chunks instead of the entire table. It also provides built-in data compression for older readings and continuous aggregates for precomputed rollups (e.g., daily/weekly consumption summaries). Since TimescaleDB is a PostgreSQL extension, adopting it requires no changes to application code — just the database setup.
 
 ### Q3. What is the rationale for the design choices?
 
